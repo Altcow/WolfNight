@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#05080f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>大野狼來了</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/style.css?v=4">
+</head>
+<body>
+<div id="gl"></div>
+
+<div id="stars">⭐ <span id="starN">0</span></div>
+<button id="gear" aria-label="家長設定(長按)">⚙️</button>
+
+<div id="danger"></div>
+<div id="hideMask"></div>
+<div id="hush">🤫</div>
+<div id="hint">👆</div>
+<div id="winFx">⭐</div>
+
+<canvas id="lunge"></canvas>
+<img id="jumpImg" alt="" src="img/wolf_scary.jpg">
+<svg id="slash" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M12 -5 L58 105"/><path d="M38 -5 L88 105"/><path d="M66 -5 L112 105"/></svg>
+<div id="laugh"><img alt="" src="img/wolf_toon.jpg"></div>
+<div id="flash"></div>
+
+<div id="title">
+  <img alt="" src="img/wolf_toon.jpg">
+  <div class="tap">👆</div>
+</div>
+
+<div id="paused" class="hidden">⏸</div>
+
+<div id="panel" class="hidden">
+  <div class="panelBox">
+    <h2>家長設定</h2>
+    <label>嚇人程度
+      <div class="seg" id="segLevel">
+        <button data-v="1">1 輕(不跳臉)</button><button data-v="2">2 中</button><button data-v="3">3 重</button>
+      </div>
+    </label>
+    <label>用麥克風偵測小朋友出聲(預設關;只在手機本機判斷音量,不錄音、不上傳)
+      <select id="mic"><option value="0">關閉</option><option value="1">開啟</option></select>
+    </label>
+    <label>音量 <input type="range" id="vol" min="0" max="1" step="0.1"></label>
+    <label>家長手機配對碼 <span id="netState" style="font-weight:normal;font-size:13px"></span>
+      <div class="row"><b id="roomCode" style="font-size:30px;letter-spacing:6px;flex:1">------</b><button id="newRoom">換新碼</button></div>
+      <small style="font-weight:normal">媽媽手機開 parent.html 輸入此碼</small>
+    </label>
+    <div class="row"><button id="resetBtn">重設星星紀錄</button></div>
+    <button id="closePanel" class="primary">關閉</button>
+  </div>
+</div>
+
+<script src="js/firebase-config.js"></script>
+<script src="js/net.js"></script>
+<script src="js/sfx.js"></script>
+<script src="lib/three.min.js"></script>
+<script src="lib/GLTFLoader.js"></script>
+<script src="js/game.js?v=8"></script>
+</body>
+</html>
