@@ -189,7 +189,8 @@ function playClip(re) {
 }
 
 // ---------- 狼 AI ----------
-const W = { state: 'patrol', pos: new THREE.Vector3(-1, 0, -2.5), yaw: 0, target: null, timer: 0, phase: 0, headYaw: 0, look: null, wp: null, aw: 0, hold: 0, search: 0 };
+let crouchT = 0;
+const W = { crouch: 0, wind: 0, state: 'patrol', pos: new THREE.Vector3(-1, 0, -2.5), yaw: 0, target: null, timer: 0, phase: 0, headYaw: 0, look: null, wp: null, aw: 0, hold: 0, search: 0 };
 const WPS = [[-2.5, -3], [0, -3.2], [2.2, -3], [-3, -0.5], [0.5, 0.2], [3, -0.2], [-1.2, 1.8], [1.8, 2.2]].map(([x, z]) => new THREE.Vector3(x, 0, z));
 const LF = () => [0.75, 1, 1.35][S.level - 1] * Math.min(1.5, 1 + (S.round - 1) * 0.08);
 function nextWP() {
@@ -239,6 +240,7 @@ function noise(pos, mag, name, awMul) {
 function startHunt() {
   if (W.state === 'hunt' || S.mode === 'caught' || S.mode === 'won') return;
   setState('hunt'); Sfx.roar(0.8); Net.log('狼發現小朋友了!');
+  W.wind = S.mode === 'escaping' ? 0 : 0.5; W.look = null;
   shake = 0.6;
 }
 
@@ -443,7 +445,7 @@ function update(dt) {
 function wolfAI(dt) {
   const L = LF();
   W.aw = Math.max(0, W.aw - dt * (W.state === 'hunt' ? 0 : 0.11));
-  let moving = false, sp = 0;
+  let moving = false, sp = 0; crouchT = 0;
   switch (W.state) {
     case 'patrol': {
       if (!W.wp) nextWP();
@@ -454,7 +456,8 @@ function wolfAI(dt) {
     }
     case 'alert': W.timer -= dt; if (W.timer <= 0) setState('investigate'); break;
     case 'investigate': {
-      sp = 1.9 * L; moving = true;
+      const far = W.target && W.pos.distanceTo(W.target) > 2.2;
+      sp = (far ? 4.4 : 1.9) * L; moving = true; crouchT = far ? 0.75 : 0;
       if (W.target && moveTo(W.target, sp, dt)) { moving = false; setState('sniff', 2.2); }
       break;
     }
@@ -474,8 +477,10 @@ function wolfAI(dt) {
       break;
     }
     case 'hunt': {
-      sp = 4.2 * L; moving = true;
+      crouchT = 1;
       const tgt = tmpV.set(camera.position.x, 0, camera.position.z - 0.5);
+      if (W.wind > 0) { W.wind -= dt; W.yaw += wrapA(Math.atan2(tgt.x - W.pos.x, tgt.z - W.pos.z) - W.yaw) * Math.min(1, dt * 8); break; }
+      sp = 6.2 * L; moving = true;
       moveTo(tgt, sp, dt);
       if (W.pos.distanceTo(tgt) < 1.9 && S.mode !== 'escaping') caught();
       break;
@@ -489,12 +494,19 @@ function animateWolf(dt, moving, sp) {
   wolfProxy.position.set(W.pos.x, 1.4, W.pos.z);
   const hunting = W.state === 'hunt', alert = W.state === 'alert' || W.state === 'investigate';
   if (rig.model) { playClip(hunting ? /run|sprint/ : moving ? /walk|sneak/ : /idle|sniff|stand/); if (gltfMixer) gltfMixer.update(dt); return; }
-  const sw = moving ? Math.sin(W.phase) * (hunting ? 0.9 : 0.55) : 0;
-  rig.legs[0].rotation.x = sw; rig.legs[1].rotation.x = -sw;
-  rig.arms[0].rotation.x = hunting ? -1.5 : -sw * 0.8; rig.arms[1].rotation.x = hunting ? -1.5 : sw * 0.8;
-  rig.arms[0].rotation.z = hunting ? 0.5 : 0.1; rig.arms[1].rotation.z = hunting ? -0.5 : -0.1;
-  rig.torso.position.y = 1.65 + (moving ? Math.abs(Math.sin(W.phase)) * 0.07 : Math.sin(clk.elapsedTime * 1.8) * 0.02);
-  rig.torso.rotation.x = hunting ? 0.45 : W.sniffing ? 0.25 : 0.05;
+  W.crouch = lerp(W.crouch, crouchT, Math.min(1, dt * (crouchT > W.crouch ? 9 : 5)));
+  const c = W.crouch, wind = hunting && W.wind > 0;
+  const sw = moving ? Math.sin(W.phase) * lerp(0.55, 1.0, c) : 0;
+  const tp = lerp(W.sniffing ? 0.25 : 0.05, 1.15, c);
+  // 趴低四足奔跑:前肢與後肢同相「跳躍式」前伸,身體貼近地面
+  rig.legs[0].rotation.x = sw; rig.legs[1].rotation.x = lerp(-sw, sw * 0.9, c);
+  rig.legs.forEach(h => { h.position.y = lerp(1.0, 0.78, c); h.position.z = lerp(0, -0.55, c); h.scale.y = lerp(1, 0.8, c); });
+  rig.arms[0].rotation.x = lerp(-sw * 0.8, -tp - 0.1 + sw * 0.9, c); rig.arms[1].rotation.x = lerp(sw * 0.8, -tp - 0.1 + sw * 0.9, c);
+  rig.arms[0].rotation.z = lerp(0.1, 0.12, c); rig.arms[1].rotation.z = lerp(-0.1, -0.12, c);
+  const bob = moving ? Math.abs(Math.sin(W.phase)) * lerp(0.07, 0.16, c) : Math.sin(clk.elapsedTime * 1.8) * 0.02;
+  rig.torso.position.y = lerp(1.65, 1.0, c) + bob; rig.torso.position.z = lerp(0, 0.1, c);
+  rig.torso.rotation.x = tp + (wind ? Math.sin(clk.elapsedTime * 40) * 0.02 : 0);
+  rig.tail.rotation.x = lerp(-2.0, -1.2, c);
   rig.tail.rotation.z = Math.sin(clk.elapsedTime * (alert ? 8 : 2)) * 0.3;
   // 頭部轉向聲音來源
   let ty = 0;
@@ -502,7 +514,7 @@ function animateWolf(dt, moving, sp) {
   else if (W.headLook !== undefined && W.state === 'patrol' && !moving) ty = W.headLook;
   W.headYaw = lerp(W.headYaw, ty, Math.min(1, dt * 8));
   rig.head.rotation.y = W.headYaw;
-  rig.head.rotation.x = W.sniffing ? 0.5 + Math.sin(clk.elapsedTime * 10) * 0.08 : hunting ? 0.2 : 0;
+  rig.head.rotation.x = lerp(W.sniffing ? 0.5 + Math.sin(clk.elapsedTime * 10) * 0.08 : 0, -0.85, c);
   rig.ears.forEach((e, i) => { e.rotation.x = alert || hunting ? Math.sin(clk.elapsedTime * 30 + i) * 0.25 : 0; });
   const col = hunting ? 0xff2200 : alert ? 0xff9a2a : 0xffc84a;
   rig.eyes.forEach(e => { e.material.emissive.setHex(col); e.material.color.setHex(hunting ? 0xff6a3a : 0xffe08a); e.material.emissiveIntensity = hunting ? 2.2 : 0.9 + clamp(W.aw, 0, 1) * 1.2; });
