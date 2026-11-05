@@ -9,7 +9,7 @@
 <title>大野狼來了</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="css/style.css?v=4">
+<link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body>
 <div id="gl"></div>
@@ -31,7 +31,18 @@
 
 <div id="title">
   <img alt="" src="img/wolf_toon.jpg">
-  <div class="tap">👆</div>
+  <div class="entry">
+    <button id="enterKid"><span class="ic">👦</span><span class="lb">小朋友</span></button>
+    <button id="enterParent"><span class="ic">🔒</span><span class="lb">家長</span></button>
+  </div>
+</div>
+
+<div id="pin" class="hidden">
+  <div class="pinBox">
+    <div class="pinTitle">🔒 請輸入家長密碼</div>
+    <div id="pinDots"><i></i><i></i><i></i><i></i></div>
+    <div id="pinPad"></div>
+  </div>
 </div>
 
 <div id="paused" class="hidden">⏸</div>
@@ -52,16 +63,16 @@
       <div class="row"><b id="roomCode" style="font-size:30px;letter-spacing:6px;flex:1">------</b><button id="newRoom">換新碼</button></div>
       <small style="font-weight:normal">媽媽手機開 parent.html 輸入此碼</small>
     </label>
-    <div class="row"><button id="resetBtn">重設星星紀錄</button></div>
+    <div class="row"><button id="resetBtn">重設星星紀錄</button><button id="openParentPage">📱 遠端監控頁</button></div>
     <button id="closePanel" class="primary">關閉</button>
   </div>
 </div>
 
-<script src="js/firebase-config.js"></script>
-<script src="js/net.js"></script>
+<script src="js/firebase-config.js?v=3"></script>
+<script src="js/net.js?v=2"></script>
 <script src="js/sfx.js"></script>
 <script src="lib/three.min.js"></script>
 <script src="lib/GLTFLoader.js"></script>
-<script src="js/game.js?v=8"></script>
+<script src="js/game.js?v=10"></script>
 </body>
 </html>

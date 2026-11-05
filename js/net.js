@@ -26,8 +26,9 @@ const Net = (() => {
   const newCode = () => String(Math.floor(100000 + Math.random() * 900000));
 
   // ----- 小孩機 -----
-  async function host(code, onCmd) {
+  async function host(code, onCmd, onMom) {
     await init(); room = code;
+    if (onMom) ref('mom').on('value', s => onMom(!!s.val()));
     ref('state').onDisconnect().remove();
     ref('cmd').remove(); ref('log').remove();
     ref('cmd').on('value', s => { const c = s.val(); if (c && c.ts && Date.now() - c.ts < 15000) onCmd(c); });
@@ -38,11 +39,12 @@ const Net = (() => {
   // ----- 媽媽機 -----
   async function join(code, onState, onLog) {
     await init(); room = code;
+    ref('mom').set({ ts: Date.now() }); ref('mom').onDisconnect().remove();
     ref('state').on('value', s => onState(s.val()));
     ref('log').limitToLast(30).on('child_added', s => onLog(s.val()));
   }
   function cmd(type, extra) { if (db && room) ref('cmd').set({ type, ts: Date.now(), ...(extra || {}) }); }
-  function leave() { if (db && room) { ref('state').off(); ref('log').off(); ref('cmd').off(); } room = null; }
+  function leave() { if (db && room) { ref('state').off(); ref('log').off(); ref('cmd').off(); ref('mom').off(); ref('mom').remove(); } room = null; }
   function onOnline(cb) { onlineCb = cb; }
 
   return { enabled, init, host, state, log, join, cmd, leave, newCode, onOnline };

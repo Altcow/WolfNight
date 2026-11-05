@@ -516,6 +516,30 @@ function loop() {
 }
 
 // ---------- 家長面板 / 雙機 ----------
+// ---------- 家長密碼(只是擋住小朋友的簡單鎖,不是高強度保護) ----------
+const PIN_CODE = '1234';
+let pinBuf = '', pinCb = null;
+function buildPin() {
+  const pad = $('#pinPad');
+  [1, 2, 3, 4, 5, 6, 7, 8, 9, '取消', 0, '⌫'].forEach(k => {
+    const b = document.createElement('button'); b.textContent = k;
+    if (typeof k === 'string') b.className = 'sub';
+    b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); pinKey(k); });
+    pad.appendChild(b);
+  });
+}
+function renderPin() { [...$('#pinDots').children].forEach((d, i) => d.classList.toggle('on', i < pinBuf.length)); }
+function askPin(cb) { pinBuf = ''; pinCb = cb; renderPin(); $('#pin').classList.remove('hidden'); }
+function pinKey(k) {
+  if (k === '取消') { $('#pin').classList.add('hidden'); pinCb = null; return; }
+  if (k === '⌫') pinBuf = pinBuf.slice(0, -1);
+  else if (pinBuf.length < 4) pinBuf += k;
+  renderPin();
+  if (pinBuf.length === 4) {
+    if (pinBuf === PIN_CODE) { const cb = pinCb; $('#pin').classList.add('hidden'); pinCb = null; if (cb) cb(); }
+    else { const d = $('#pinDots'); d.classList.remove('bad'); void d.offsetWidth; d.classList.add('bad'); setTimeout(() => { pinBuf = ''; renderPin(); }, 350); }
+  }
+}
 function openPanel() {
   $('#panel').classList.remove('hidden'); $('#vol').value = S.vol; $('#mic').value = String(S.mic);
   document.querySelectorAll('#segLevel button').forEach(b => b.classList.toggle('on', +b.dataset.v === S.level));
@@ -538,18 +562,23 @@ async function startNet(code) {
   $('#roomCode').textContent = code;
   if (!Net.enabled()) { $('#netState').textContent = '(未設定 Firebase,單機模式)'; return; }
   try {
-    await Net.host(code, onCmd);
-    $('#netState').textContent = '已連線,等待家長端';
-    Net.onOnline(o => { $('#netState').textContent = o ? '已連線' : '離線(單機繼續玩)'; });
+    let online = true, mom = false;
+    const show = () => { $('#netState').textContent = !online ? '離線(單機繼續玩)' : mom ? '🟢 媽媽已連線' : '已連線,等待媽媽輸入配對碼'; };
+    await Net.host(code, onCmd, m => { mom = m; show(); });
+    show();
+    Net.onOnline(o => { online = o; show(); });
     Net.state({ text: '', form: 'toon', stars: S.stars, scare: S.level });
   } catch (e) { $('#netState').textContent = '連線失敗,單機模式'; console.warn(e); }
 }
 function buildUI() {
   const c = renderer.domElement;
   c.addEventListener('pointerdown', e => { e.preventDefault(); onTap(e); });
-  $('#title').addEventListener('pointerdown', e => { e.preventDefault(); startGame(); });
+  $('#enterKid').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); startGame(); });
+  $('#enterParent').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); askPin(openPanel); });
+  $('#openParentPage').addEventListener('click', () => window.open('parent.html', '_blank'));
+  buildPin();
   let gearTm = null; const g = $('#gear');
-  g.addEventListener('pointerdown', e => { e.stopPropagation(); gearTm = setTimeout(openPanel, 1500); });
+  g.addEventListener('pointerdown', e => { e.stopPropagation(); gearTm = setTimeout(() => askPin(openPanel), 1500); });
   ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => g.addEventListener(ev, () => clearTimeout(gearTm)));
   $('#closePanel').addEventListener('click', () => $('#panel').classList.add('hidden'));
   document.querySelectorAll('#segLevel button').forEach(b => b.addEventListener('click', () => { S.level = +b.dataset.v; save(); openPanel(); }));
