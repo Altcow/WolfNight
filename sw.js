@@ -1,8 +1,8 @@
-const VERSION = 'v14';               // 每次更新內容都要遞增,否則舊快取不會換
+const VERSION = 'v15';               // 每次更新內容都要遞增,否則舊快取不會換
 const CACHE_NAME = 'wolfnight-' + VERSION;
 const PRECACHE = [
   './', './index.html', './parent.html', './manifest.webmanifest', './css/style.css?v=5',
-  './js/firebase-config.js?v=3', './js/net.js?v=2', './js/sfx.js', './js/game.js?v=11',
+  './js/firebase-config.js?v=3', './js/net.js?v=2', './js/sfx.js', './js/game.js?v=12',
   './lib/three.min.js', './lib/GLTFLoader.js', './img/wolf_toon.jpg', './img/wolf_scary.jpg', './img/lunge_crouch.webp', './img/lunge_strip.webp', './icons/icon.svg',
 ];
 self.addEventListener('install', e => {

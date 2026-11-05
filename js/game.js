@@ -200,7 +200,7 @@ function nextWP() {
 function setState(s, t) {
   if (W.state === s) return;
   W.state = s; W.timer = t || 0;
-  const txt = { patrol: '狼在巡邏', alert: '狼聽到聲音了', investigate: '狼過去查看', sniff: '狼在嗅聞', hunt: '狼發現小朋友了!', search: '狼在搜索' }[s];
+  const txt = { patrol: '狼在巡邏', alert: '狼聽到聲音了', investigate: '狼過去查看', sniff: '狼在嗅聞', hunt: '狼發現小朋友了!', search: '狼在搜索', leave: '狼跑開了' }[s];
   if (txt) Net.state({ text: txt, form: s === 'hunt' ? 'scary' : 'toon', stars: S.stars, scare: S.level });
 }
 function moveTo(p, sp, dt) {
@@ -228,7 +228,7 @@ function noise(pos, mag, name, awMul) {
   if (S.hidden) hear *= 0.35;
   const gain = hear * 0.55 * (awMul === undefined ? 1 : awMul) * LF() * (S.round === 1 && S.plays <= 1 && S.tapN < 3 ? 0.6 : 1);
   W.aw = clamp(W.aw + gain, 0, 1.2);
-  if (W.state === 'hunt' || S.mode === 'caught') return;
+  if (W.state === 'hunt' || W.state === 'leave' || S.mode === 'caught') return;
   if (hear > 0.18) {
     Sfx.growl();
     if (W.state === 'patrol' || W.state === 'search' || W.state === 'sniff') { W.target = pos.clone(); W.target.y = 0; setState('alert', 0.7 / LF()); }
@@ -476,6 +476,11 @@ function wolfAI(dt) {
       if (moveTo(W.wp, sp, dt)) { W.search--; if (W.search <= 0) setState('patrol'); else nextWP(); }
       break;
     }
+    case 'leave': {
+      crouchT = 0.8; sp = 6 * L; moving = true; W.aw = 0; W.look = null;
+      if (moveTo(W.target, sp, dt)) { moving = false; setState('patrol', 0); W.wp = null; W.hold = 2; }
+      break;
+    }
     case 'hunt': {
       crouchT = 1;
       const tgt = tmpV.set(camera.position.x, 0, camera.position.z - 0.5);
@@ -568,7 +573,11 @@ function onCmd(c) {
   if (c.type === 'resume') { S.paused = false; $('#paused').classList.add('hidden'); return; }
   if (S.mode !== 'play') return;
   if (c.type === 'reveal') { W.aw = 1.1; if (!S.hidden) startHunt(); else { W.target = CUP_POS.clone(); setState('investigate'); } }
-  else if (c.type === 'calm') { W.aw = 0; W.target = null; W.state = ''; setState('patrol'); nextWP(); }
+  else if (c.type === 'calm') {
+    W.aw = 0; W.look = null; W.sniffing = false;
+    if (S.mode === 'play') { W.target = new THREE.Vector3(W.pos.x < 0 ? 3.4 : -3.4, 0, -3.9); W.state = ''; setState('leave'); }
+    else { W.state = ''; setState('patrol'); nextWP(); }
+  }
 }
 async function startNet(code) {
   $('#roomCode').textContent = code;
