@@ -546,7 +546,7 @@ function buildPin() {
   });
 }
 function renderPin() { [...$('#pinDots').children].forEach((d, i) => d.classList.toggle('on', i < pinBuf.length)); }
-function askPin(cb) { pinBuf = ''; pinCb = cb; renderPin(); $('#pin').classList.remove('hidden'); }
+function askPin(cb) { cb(); }   // 已改為長按 ⚙️ 1.5 秒直接開啟,不再輸入密碼
 function pinKey(k) {
   if (k === '取消') { $('#pin').classList.add('hidden'); pinCb = null; return; }
   if (k === '⌫') pinBuf = pinBuf.slice(0, -1);
