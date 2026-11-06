@@ -49,30 +49,20 @@
 
 <div id="panel" class="hidden">
   <div class="panelBox">
-    <h2>家長設定</h2>
-    <label>嚇人程度
-      <div class="seg" id="segLevel">
-        <button data-v="1">1 輕(不跳臉)</button><button data-v="2">2 中</button><button data-v="3">3 重</button>
-      </div>
-    </label>
-    <label>用麥克風偵測小朋友出聲(預設關;只在手機本機判斷音量,不錄音、不上傳)
-      <select id="mic"><option value="0">關閉</option><option value="1">開啟</option></select>
-    </label>
-    <label>音量 <input type="range" id="vol" min="0" max="1" step="0.1"></label>
-    <label>家長手機配對碼 <span id="netState" style="font-weight:normal;font-size:13px"></span>
+    <h2>配對碼</h2>
+    <label>配對碼 <span id="netState" style="font-weight:normal;font-size:13px"></span>
       <div class="row"><b id="roomCode" style="font-size:30px;letter-spacing:6px;flex:1">------</b><button id="newRoom">換新碼</button></div>
-      <small style="font-weight:normal">媽媽手機開 parent.html 輸入此碼</small>
+      <small style="font-weight:normal">媽媽手機開 parent.html 輸入此碼,其他設定都在媽媽手機調整</small>
     </label>
-    <div class="row"><button id="resetBtn">重設星星紀錄</button><button id="openParentPage">📱 遠端監控頁</button></div>
     <button id="closePanel" class="primary">關閉</button>
   </div>
 </div>
 
 <script src="js/firebase-config.js?v=3"></script>
-<script src="js/net.js?v=2"></script>
+<script src="js/net.js?v=3"></script>
 <script src="js/sfx.js"></script>
 <script src="lib/three.min.js"></script>
 <script src="lib/GLTFLoader.js"></script>
-<script src="js/game.js?v=12"></script>
+<script src="js/game.js?v=13"></script>
 </body>
 </html>

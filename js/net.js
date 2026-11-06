@@ -26,8 +26,9 @@ const Net = (() => {
   const newCode = () => String(Math.floor(100000 + Math.random() * 900000));
 
   // ----- 小孩機 -----
-  async function host(code, onCmd, onMom) {
+  async function host(code, onCmd, onMom, onSettings) {
     await init(); room = code;
+    if (onSettings) ref('settings').on('value', s => { const v = s.val(); if (v) onSettings(v); });
     if (onMom) ref('mom').on('value', s => onMom(!!s.val()));
     ref('state').onDisconnect().remove();
     ref('cmd').remove(); ref('log').remove();
@@ -37,15 +38,17 @@ const Net = (() => {
   function log(m) { if (db && room) { ref('log').push({ t: Date.now(), m: String(m).slice(0, 120) }).catch(() => {}); } }
 
   // ----- 媽媽機 -----
-  async function join(code, onState, onLog) {
+  async function join(code, onState, onLog, onSettings) {
     await init(); room = code;
+    if (onSettings) ref('settings').on('value', s => onSettings(s.val()));
     ref('mom').set({ ts: Date.now() }); ref('mom').onDisconnect().remove();
     ref('state').on('value', s => onState(s.val()));
     ref('log').limitToLast(30).on('child_added', s => onLog(s.val()));
   }
   function cmd(type, extra) { if (db && room) ref('cmd').set({ type, ts: Date.now(), ...(extra || {}) }); }
-  function leave() { if (db && room) { ref('state').off(); ref('log').off(); ref('cmd').off(); ref('mom').off(); ref('mom').remove(); } room = null; }
+  function setSettings(obj) { if (db && room) ref('settings').set(obj).catch(() => {}); }
+  function leave() { if (db && room) { ref('settings').off(); ref('state').off(); ref('log').off(); ref('cmd').off(); ref('mom').off(); ref('mom').remove(); } room = null; }
   function onOnline(cb) { onlineCb = cb; }
 
-  return { enabled, init, host, state, log, join, cmd, leave, newCode, onOnline };
+  return { enabled, init, host, state, log, join, cmd, setSettings, leave, newCode, onOnline };
 })();

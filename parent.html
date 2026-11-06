@@ -20,7 +20,7 @@ button.dark{background:#2b3f55;color:#fff}button.red{background:#e63946;color:#f
 <body>
 <h1>🐺 大野狼來了 家長端</h1>
 <div id="login" class="card">
-  <div>輸入小孩手機上的 6 位數配對碼<br><small>(小孩手機長按右上角 ⚙️ 1.5 秒即可看到)</small></div>
+  <div>輸入小孩手機上的 6 位數配對碼<br><small>(小孩手機長按右上角 ⚙️ 1.5 秒、輸入 1234 即可看到)</small></div>
   <div class="row"><input id="code" inputmode="numeric" maxlength="6" placeholder="000000"></div>
   <button id="go" class="red" style="width:100%">連線</button>
   <div id="err" style="color:#ffb4b4;margin-top:8px"></div>
@@ -33,24 +33,29 @@ button.dark{background:#2b3f55;color:#fff}button.red{background:#e63946;color:#f
   </div>
   <div class="row"><button id="reveal" class="red">😈 叫狼發現小孩</button><button id="calm" class="dark">😌 叫狼走開</button></div>
   <div class="row"><button id="pause" class="dark">⏸ 暫停遊戲</button><button id="resume" class="dark">▶ 繼續遊戲</button></div>
-  <div class="card">嚇人程度
+  <div class="card">嚇人程度(1 輕:不跳臉)
     <div class="row"><button data-s="1" class="sc">1 輕</button><button data-s="2" class="sc">2 中</button><button data-s="3" class="sc">3 重</button></div>
+    <div class="row"><button id="micBtn" class="dark">🎤 麥克風:關</button><button id="resetStars" class="dark">重設星星</button></div>
+    <div>音量 <input id="vol" type="range" min="0" max="1" step="0.1" value="1" style="font-size:16px;padding:0"></div>
   </div>
   <div class="card"><b>互動紀錄</b><div id="log"></div></div>
   <button id="leave" class="dark" style="width:100%">離開</button>
 </div>
 <script src="js/firebase-config.js"></script>
-<script src="js/net.js"></script>
+<script src="js/net.js?v=3"></script>
 <script>
 'use strict';
 const $=s=>document.querySelector(s);
 let last=0;
+let cfg={level:2,mic:0,vol:1};
+function showCfg(){ document.querySelectorAll('.sc').forEach(b=>b.classList.toggle('on',+b.dataset.s===cfg.level)); $('#micBtn').textContent='🎤 麥克風:'+(cfg.mic?'開':'關'); $('#vol').value=cfg.vol; }
+function setCfg(p){ cfg=Object.assign({},cfg,p); Net.setSettings(cfg); showCfg(); }
+function onSettings(v){ if(v) cfg=Object.assign({},cfg,v); showCfg(); }
 function show(st){
   if(!st){ $('#say').textContent='小孩機尚未開始或已離線'; return; }
   $('#say').textContent=st.text||'…';
   $('#thumb').src=st.form==='scary'?'img/wolf_scary.jpg':'img/wolf_toon.jpg';
   $('#meta').textContent=`⭐ ${st.stars||0} ・ 狀態:${({toon:'潛行中',scary:'發現/抓到小孩!',rest:'休息中'})[st.form]||'—'} ・ 嚇人程度 ${st.scare||'-'}`;
-  document.querySelectorAll('.sc').forEach(b=>b.classList.toggle('on',+b.dataset.s===st.scare));
   last=st.ts||0;
 }
 function addLog(l){ const d=document.createElement('div'); const t=new Date(l.t); d.textContent=`${t.toTimeString().slice(0,8)}  ${l.m}`; const b=$('#log'); b.prepend(d); }
@@ -59,7 +64,7 @@ async function connect(code){
   if(!Net.enabled()){ $('#err').textContent='尚未設定 Firebase(js/firebase-config.js)'; return; }
   try{
     Net.onOnline(o=>{ $('#conn').textContent=o?'🟢 已連線':'🔴 連線中斷,重試中…'; });
-    await Net.join(code, show, addLog);
+    await Net.join(code, show, addLog, onSettings);
     try{ localStorage.setItem('bwRoom',code); }catch(e){}
     $('#login').style.display='none'; $('#view').style.display='block';
   }catch(e){ $('#err').textContent='連線失敗:'+(e&&e.message||e); }
@@ -67,7 +72,8 @@ async function connect(code){
 $('#go').onclick=()=>{ const c=$('#code').value.trim(); if(/^\d{6}$/.test(c)) connect(c); else $('#err').textContent='請輸入 6 位數字'; };
 $('#reveal').onclick=()=>Net.cmd('reveal'); $('#calm').onclick=()=>Net.cmd('calm');
 $('#pause').onclick=()=>Net.cmd('pause'); $('#resume').onclick=()=>Net.cmd('resume');
-document.querySelectorAll('.sc').forEach(b=>b.onclick=()=>Net.cmd('scare',{v:+b.dataset.s}));
+document.querySelectorAll('.sc').forEach(b=>b.onclick=()=>setCfg({level:+b.dataset.s}));
+$('#micBtn').onclick=()=>setCfg({mic:cfg.mic?0:1}); $('#vol').onchange=e=>setCfg({vol:+e.target.value}); $('#resetStars').onclick=()=>{ if(confirm('確定重設星星紀錄?')) Net.cmd('resetStars'); };
 $('#leave').onclick=()=>{ Net.leave(); location.reload(); };
 try{ const c=localStorage.getItem('bwRoom'); if(c) $('#code').value=c; }catch(e){}
 </script>

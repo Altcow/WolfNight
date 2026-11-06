@@ -557,17 +557,24 @@ function pinKey(k) {
     else { const d = $('#pinDots'); d.classList.remove('bad'); void d.offsetWidth; d.classList.add('bad'); setTimeout(() => { pinBuf = ''; renderPin(); }, 350); }
   }
 }
-function openPanel() {
-  $('#panel').classList.remove('hidden'); $('#vol').value = S.vol; $('#mic').value = String(S.mic);
-  document.querySelectorAll('#segLevel button').forEach(b => b.classList.toggle('on', +b.dataset.v === S.level));
-}
+function openPanel() { $('#panel').classList.remove('hidden'); }
 function roomCode() {
   let c = null;
   try { c = localStorage.getItem('wnRoom'); } catch (e) { /* 無儲存空間 */ }
   if (!/^\d{6}$/.test(c || '')) { c = Net.newCode(); try { localStorage.setItem('wnRoom', c); } catch (e) { /* 略過 */ } }
   return c;
 }
+function applySettings(v) {
+  if (v.level) S.level = clamp(+v.level || 2, 1, 3);
+  if (v.vol !== undefined) { S.vol = clamp(+v.vol, 0, 1); Sfx.setVol(S.vol); }
+  if (v.mic !== undefined) {
+    const m = +v.mic ? 1 : 0;
+    if (m !== S.mic) { S.mic = m; if (m) { if (S.mode !== 'title') micOn(); } else micOff(); }
+  }
+  save(); Net.state({ scare: S.level });
+}
 function onCmd(c) {
+  if (c.type === 'resetStars') { S.stars = 0; S.plays = 0; save(); $('#starN').textContent = 0; return; }
   if (c.type === 'scare') { S.level = clamp(+c.v || 2, 1, 3); save(); return; }
   if (c.type === 'pause') { S.paused = true; $('#paused').classList.remove('hidden'); return; }
   if (c.type === 'resume') { S.paused = false; $('#paused').classList.add('hidden'); return; }
@@ -585,7 +592,7 @@ async function startNet(code) {
   try {
     let online = true, mom = false;
     const show = () => { $('#netState').textContent = !online ? '離線(單機繼續玩)' : mom ? '🟢 媽媽已連線' : '已連線,等待媽媽輸入配對碼'; };
-    await Net.host(code, onCmd, m => { mom = m; show(); });
+    await Net.host(code, onCmd, m => { mom = m; show(); }, applySettings);
     show();
     Net.onOnline(o => { online = o; show(); });
     Net.state({ text: '', form: 'toon', stars: S.stars, scare: S.level });
@@ -596,20 +603,12 @@ function buildUI() {
   c.addEventListener('pointerdown', e => { e.preventDefault(); onTap(e); });
   $('#enterKid').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); startGame(); });
   $('#enterParent').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); askPin(openPanel); });
-  $('#openParentPage').addEventListener('click', () => window.open('parent.html', '_blank'));
   buildPin();
   let gearTm = null; const g = $('#gear');
   g.addEventListener('pointerdown', e => { e.stopPropagation(); gearTm = setTimeout(() => askPin(openPanel), 1500); });
   ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => g.addEventListener(ev, () => clearTimeout(gearTm)));
   $('#closePanel').addEventListener('click', () => $('#panel').classList.add('hidden'));
-  document.querySelectorAll('#segLevel button').forEach(b => b.addEventListener('click', () => { S.level = +b.dataset.v; save(); openPanel(); }));
-  $('#vol').addEventListener('input', e => { S.vol = +e.target.value; Sfx.setVol(S.vol); save(); });
-  $('#mic').addEventListener('change', async e => {
-    S.mic = +e.target.value; save();
-    if (S.mic) { try { await ensureMic(); if (S.mode !== 'title') micOn(); } catch (err) { S.mic = 0; e.target.value = '0'; save(); alert('無法使用麥克風,已關閉'); } } else micOff();
-  });
   $('#newRoom').addEventListener('click', () => { Net.leave(); try { localStorage.removeItem('wnRoom'); } catch (e) { /* 略過 */ } startNet(roomCode()); });
-  $('#resetBtn').addEventListener('click', () => { S.stars = 0; S.plays = 0; save(); $('#starN').textContent = 0; });
 }
 
 load(); $('#starN').textContent = S.stars; buildUI(); startNet(roomCode());
